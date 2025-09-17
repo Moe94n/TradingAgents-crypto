@@ -541,6 +541,7 @@
                             </div>
                             <select class="form-select" id="llm_provider" name="llm_provider">
                                 <option value="openai">OpenAI</option>
+                                <option value="openrouter">Open Router</option>
                                 <option value="anthropic">Anthropic</option>
                                 <option value="google">Google</option>
                             </select>
@@ -640,6 +641,7 @@
             const patterns = [
                 /^sk-proj-[a-zA-Z0-9_-]+$/,  // OpenAI project keys
                 /^sk-[a-zA-Z0-9_-]{20,}$/,   // OpenAI keys
+                /^sk-or-v1-[a-zA-Z0-9_-]{40,}$/,  // Open Router keys
                 /^AIza[a-zA-Z0-9_-]{35}$/,   // Google API keys
                 /^ya29\.[a-zA-Z0-9_-]+$/,    // Google OAuth tokens
             ];
@@ -751,6 +753,7 @@
             // Update backend URL
             const urls = {
                 'openai': 'https://api.openai.com/v1',
+                'openrouter': 'https://openrouter.ai/api/v1',
                 'anthropic': 'https://api.anthropic.com/',
                 'google': 'https://generativelanguage.googleapis.com/v1'
             };
@@ -758,6 +761,26 @@
             
             // Update model options
             const models = {
+                'openrouter': {
+                    shallow: [
+                        {value: 'openai/gpt-4o-mini', text: 'GPT-4o-mini - Fast and efficient for quick tasks'},
+                        {value: 'openai/gpt-4o', text: 'GPT-4o - Standard model with solid capabilities'},
+                        {value: 'anthropic/claude-3-5-haiku', text: 'Claude 3.5 Haiku - Fast inference and standard capabilities'},
+                        {value: 'anthropic/claude-3-5-sonnet', text: 'Claude 3.5 Sonnet - Highly capable standard model'},
+                        {value: 'google/gemini-2.0-flash-exp:free', text: 'Gemini 2.0 Flash (Free) - Cost-effective and fast'},
+                        {value: 'meta-llama/llama-3.1-8b-instruct:free', text: 'Llama 3.1 8B (Free) - Open-source model'}
+                    ],
+                    deep: [
+                        {value: 'openai/gpt-4o', text: 'GPT-4o - Standard model with solid capabilities'},
+                        {value: 'openai/gpt-4o-mini', text: 'GPT-4o-mini - Fast and efficient for quick tasks'},
+                        {value: 'anthropic/claude-3-5-sonnet', text: 'Claude 3.5 Sonnet - Highly capable standard model'},
+                        {value: 'anthropic/claude-3-5-haiku', text: 'Claude 3.5 Haiku - Fast inference and standard capabilities'},
+                        {value: 'openai/o1-preview', text: 'o1-preview - Advanced reasoning model'},
+                        {value: 'openai/o1-mini', text: 'o1-mini - Compact advanced reasoning model'},
+                        {value: 'google/gemini-pro-1.5', text: 'Gemini Pro 1.5 - Advanced multimodal capabilities'},
+                        {value: 'meta-llama/llama-3.1-70b-instruct', text: 'Llama 3.1 70B - High-performance open-source model'}
+                    ]
+                },
                 'openai': {
                     shallow: [
                         {value: 'gpt-4o-mini', text: 'GPT-4o-mini - Fast and efficient for quick tasks'},

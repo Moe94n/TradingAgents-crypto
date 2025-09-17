@@ -31,10 +31,11 @@ A powerful cryptocurrency trading analysis framework powered by multiple special
 - **DeFi Analytics**: Decentralized finance protocol analysis and yield farming insights
 
 ### 🧠 **LLM Integration**
-- **Multiple Providers**: Support for OpenAI, Anthropic, and Google models
-- **Latest Models**: Including GPT-4, Claude Sonnet/Opus, and Gemini 2.0/2.5
+- **Multiple Providers**: Support for Open Router, OpenAI, Anthropic, and Google models
+- **Latest Models**: Including GPT-4, Claude Sonnet/Opus, Gemini 2.0/2.5, and 100+ models via Open Router
 - **Quick & Deep Thinking**: Separate models for fast responses and complex analysis
 - **API Key Management**: Secure API key input and management
+- **Open Router Default**: Enhanced model availability and cost optimization
 
 ## 🆕 **What's New for Crypto Support**
 
@@ -149,6 +150,13 @@ This fork adds comprehensive cryptocurrency trading capabilities to the original
    - Start new analysis with different parameters
 
 ### Supported LLM Providers
+
+#### **Open Router** ⭐ **NEW**
+- Access to 100+ AI models from multiple providers
+- GPT-4, Claude, Gemini, Llama, and many more
+- Cost-effective model selection and routing
+- API endpoint: `https://openrouter.ai/api/v1`
+- **Default provider** for enhanced model availability
 
 #### **OpenAI**
 - GPT-4o, GPT-4.1 series
