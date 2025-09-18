@@ -5,6 +5,11 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Set default environment variables for OpenRouter (can be overridden at runtime)
+ENV LLM_PROVIDER=openrouter
+ENV BACKEND_URL=https://openrouter.ai/api/v1
+ENV PORT=8080
+
 # Set work directory
 WORKDIR /app
 

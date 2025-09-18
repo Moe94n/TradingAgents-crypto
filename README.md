@@ -33,6 +33,7 @@ A powerful cryptocurrency trading analysis framework powered by multiple special
 ### 🧠 **LLM Integration**
 - **Multiple Providers**: Support for Open Router, OpenAI, Anthropic, and Google models
 - **Latest Models**: Including GPT-4, Claude Sonnet/Opus, Gemini 2.0/2.5, and 100+ models via Open Router
+- **20+ FREE Models**: No-cost options from Llama, Mistral, Google, Microsoft, and more
 - **Quick & Deep Thinking**: Separate models for fast responses and complex analysis
 - **API Key Management**: Secure API key input and management
 - **Open Router Default**: Enhanced model availability and cost optimization
@@ -125,6 +126,58 @@ This fork adds comprehensive cryptocurrency trading capabilities to the original
 6. **Open your browser**
    Navigate to `http://localhost:5000` to access the web interface
 
+### Docker Deployment
+
+You can also run the application using Docker:
+
+1. **Build and run with Docker**
+   ```bash
+   docker build -t tradingagents-crypto .
+   docker run -p 8080:8080 -e API_KEY=your_openrouter_api_key tradingagents-crypto
+   ```
+
+2. **Or use Docker Compose**
+   ```bash
+   # Copy the example environment file and edit it with your API keys
+   cp .env.example .env
+   # Edit .env file to add your API keys
+   docker-compose up
+   ```
+
+3. **Open your browser**
+   Navigate to `http://localhost:8080` to access the web interface
+
+### Testing Model Selection
+
+To verify that model selection is working correctly:
+
+1. Open your browser to `http://localhost:8080`
+2. Select a different provider (like OpenRouter) if not already selected
+3. Choose different models for "Quick Thinking" and "Deep Thinking"
+4. Start an analysis
+5. Check the application logs for debug messages showing the correct models are being used
+
+You should see debug output like:
+```
+[DEBUG] Updated config quick_think_llm: meta-llama/llama-3.1-8b-instruct:free
+[DEBUG] Updated config deep_think_llm: meta-llama/llama-3.1-70b-instruct
+```
+
+This confirms that the model selection fix is working correctly.
+
+### Docker Environment Variables
+
+When running with Docker, you can configure the application using these environment variables:
+
+- `API_KEY` - Your OpenRouter API key (required for OpenRouter provider)
+- `LLM_PROVIDER` - LLM provider (default: openrouter)
+- `BACKEND_URL` - API endpoint (default: https://openrouter.ai/api/v1)
+- `QUICK_THINK_LLM` - Model for quick thinking tasks (default: openai/gpt-4o-mini)
+- `DEEP_THINK_LLM` - Model for deep thinking tasks (default: openai/gpt-4o)
+- `PORT` - Port to run the application on (default: 8080)
+
+For a complete list of environment variables, see the `.env.example` file.
+
 ## 🎯 Usage
 
 ### Web Interface Workflow
@@ -151,9 +204,10 @@ This fork adds comprehensive cryptocurrency trading capabilities to the original
 
 ### Supported LLM Providers
 
-#### **Open Router** ⭐ **NEW**
+#### **Open Router** ⭐ **NEW** 🆓
 - Access to 100+ AI models from multiple providers
-- GPT-4, Claude, Gemini, Llama, and many more
+- **20+ FREE models** available (no API costs)
+- GPT-4, Claude, Gemini, Llama, Mistral, and many more
 - Cost-effective model selection and routing
 - API endpoint: `https://openrouter.ai/api/v1`
 - **Default provider** for enhanced model availability

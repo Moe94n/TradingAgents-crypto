@@ -48,6 +48,15 @@ class TradingAgentsGraph:
         self.debug = debug
         self.config = config or DEFAULT_CONFIG
 
+        # Print debug information about the configuration
+        if self.debug or os.environ.get('FLASK_ENV') != 'production':
+            print(f"[DEBUG] TradingAgentsGraph config:")
+            print(f"  llm_provider: {self.config.get('llm_provider', 'NOT SET')}")
+            print(f"  backend_url: {self.config.get('backend_url', 'NOT SET')}")
+            print(f"  quick_think_llm: {self.config.get('quick_think_llm', 'NOT SET')}")
+            print(f"  deep_think_llm: {self.config.get('deep_think_llm', 'NOT SET')}")
+            print(f"  api_key present: {'YES' if self.config.get('api_key') else 'NO'}")
+
         # Update the interface's config
         set_config(self.config)
 
@@ -58,7 +67,7 @@ class TradingAgentsGraph:
         )
 
         # Initialize LLMs
-        if self.config["llm_provider"].lower() == "openai" or self.config["llm_provider"] == "ollama" or self.config["llm_provider"] == "openrouter":
+        if self.config["llm_provider"].lower() == "openai" or self.config["llm_provider"] == "ollama" or self.config["llm_provider"].lower() == "openrouter":
             self.deep_thinking_llm = ChatOpenAI(
                 model=self.config["deep_think_llm"], 
                 base_url=self.config["backend_url"],

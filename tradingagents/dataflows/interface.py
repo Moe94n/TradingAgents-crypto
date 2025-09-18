@@ -740,7 +740,37 @@ def get_stock_news_openai(ticker, curr_date):
         store=True,
     )
 
-    return response.output[1].content[0].text
+    # Handle different response formats
+    if hasattr(response, 'output') and isinstance(response.output, list) and len(response.output) > 1:
+        # Handle different response formats
+        if hasattr(response, 'output') and isinstance(response.output, list) and len(response.output) > 1:
+            # Handle different response formats
+            if hasattr(response, 'output') and isinstance(response.output, list) and len(response.output) > 1:
+                return response.output[1].content[0].text
+            elif hasattr(response, 'output') and isinstance(response.output, str):
+                return response.output
+            else:
+                # Fallback: try to extract text from the response
+                try:
+                    return str(response)
+                except:
+                    return f"Error: Unable to extract fundamentals response content for {ticker}"
+        elif hasattr(response, 'output') and isinstance(response.output, str):
+            return response.output
+        else:
+            # Fallback: try to extract text from the response
+            try:
+                return str(response)
+            except:
+                return "Error: Unable to extract global news response content"
+    elif hasattr(response, 'output') and isinstance(response.output, str):
+        return response.output
+    else:
+        # Fallback: try to extract text from the response
+        try:
+            return str(response)
+        except:
+            return f"Error: Unable to extract response content for {ticker}"
 
 
 def get_global_news_openai(curr_date):

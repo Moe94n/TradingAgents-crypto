@@ -541,12 +541,12 @@
                             </div>
                             <select class="form-select" id="llm_provider" name="llm_provider">
                                 <option value="openai">OpenAI</option>
-                                <option value="openrouter">Open Router</option>
+                                <option value="openrouter" selected>Open Router</option>
                                 <option value="anthropic">Anthropic</option>
                                 <option value="google">Google</option>
                             </select>
-                            <input type="text" class="form-control" id="backend_url" name="backend_url" 
-                                   placeholder="Backend URL" value="https://api.openai.com/v1" style="margin-top: 12px;">
+                            <input type="text" class="form-control" id="backend_url" name="backend_url"
+                                   placeholder="Backend URL" value="https://openrouter.ai/api/v1" style="margin-top: 12px;">
                             <input type="password" class="form-control" id="api_key" name="api_key" 
                                    placeholder="API Key (required)" required style="margin-top: 12px;">
                             <div class="form-text text-warning" style="margin-top: 6px;">
@@ -566,31 +566,36 @@
                             <div>
                                 <label class="form-label" style="font-size: 0.9rem; margin-bottom: 5px;">Quick Thinking</label>
                                 <select class="form-select" id="shallow_thinker" name="shallow_thinker">
-                                    <option value="gpt-4o-mini">GPT-4o-mini</option>
-                                    <option value="gpt-4.1-nano">GPT-4.1-nano</option>
-                                    <option value="gpt-4.1-mini">GPT-4.1-mini</option>
-                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="openai/gpt-4o-mini">GPT-4o-mini</option>
+                                    <option value="openai/gpt-4.1-nano">GPT-4.1-nano</option>
+                                    <option value="openai/gpt-4.1-mini">GPT-4.1-mini</option>
+                                    <option value="openai/gpt-4o">GPT-4o</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 0.9rem; margin-bottom: 5px;">Deep Thinking</label>
                                 <select class="form-select" id="deep_thinker" name="deep_thinker">
-                                    <option value="gpt-4.1-nano">GPT-4.1-nano</option>
-                                    <option value="gpt-4.1-mini">GPT-4.1-mini</option>
-                                    <option value="gpt-4o" selected>GPT-4o</option>
-                                    <option value="o4-mini">o4-mini</option>
-                                    <option value="o3-mini">o3-mini</option>
-                                    <option value="o3">o3</option>
-                                    <option value="o1">o1</option>
+                                    <option value="openai/gpt-4.1-nano">GPT-4.1-nano</option>
+                                    <option value="openai/gpt-4.1-mini">GPT-4.1-mini</option>
+                                    <option value="openai/gpt-4o" selected>GPT-4o</option>
+                                    <option value="openai/o4-mini">o4-mini</option>
+                                    <option value="openai/o3-mini">o3-mini</option>
+                                    <option value="openai/o3">o3</option>
+                                    <option value="openai/o1">o1</option>
                                 </select>
                             </div>
                         </div>
                         <small class="form-text text-muted">Models for quick responses and complex analysis</small>
                     </div>
                     
-                    <button type="submit" class="btn btn-custom">
-                        <i class="fas fa-rocket"></i> Start Analysis
-                    </button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="submit" class="btn btn-custom">
+                            <i class="fas fa-rocket"></i> Start Analysis
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearUserPreferences()" style="font-size: 0.8rem; padding: 8px 12px;">
+                            <i class="fas fa-undo"></i> Reset Settings
+                        </button>
+                    </div>
                 </form>
                 
                 <div class="copyright-notice">
@@ -623,13 +628,200 @@
                 document.getElementById('api_key').value = savedApiKey;
             }
         }
-        
+
         function saveApiKey() {
             const apiKey = document.getElementById('api_key').value.trim();
             if (apiKey && isValidApiKeyFormat(apiKey)) {
                 // WARNING: This stores the API key in browser localStorage
                 // Only use this for development/testing purposes
                 localStorage.setItem('tradingAgentsCrypto_apiKey', apiKey);
+            }
+        }
+
+        // Configuration Preferences Management (non-sensitive settings)
+        function saveUserPreferences() {
+            const preferences = {
+                llm_provider: document.getElementById('llm_provider').value,
+                backend_url: document.getElementById('backend_url').value,
+                shallow_thinker: document.getElementById('shallow_thinker').value,
+                deep_thinker: document.getElementById('deep_thinker').value,
+                research_depth: document.getElementById('research_depth').value,
+                selected_analysts: Array.from(document.querySelectorAll('.checkbox-item.selected'))
+                    .map(item => item.dataset.analyst),
+                ticker: document.getElementById('ticker').value,
+                analysis_date: document.getElementById('analysis_date').value
+            };
+
+            // Save to localStorage (excluding sensitive API key)
+            localStorage.setItem('tradingAgentsCrypto_preferences', JSON.stringify(preferences));
+            console.log('[CONFIG] User preferences saved:', preferences);
+
+            // Show brief visual feedback
+            showSaveNotification();
+        }
+
+        function showSaveNotification() {
+            // Remove any existing notification
+            const existingNotification = document.getElementById('save-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // Create and show new notification
+            const notification = document.createElement('div');
+            notification.id = 'save-notification';
+            notification.innerHTML = '✓ Preferences saved';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: fadeInOut 2s ease-in-out;
+            `;
+
+            // Add fade animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-10px); }
+                    10%, 90% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+
+            document.body.appendChild(notification);
+
+            // Remove notification after animation
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 2000);
+        }
+
+        function clearUserPreferences() {
+            if (confirm('Are you sure you want to reset all settings to defaults? This will clear your saved preferences.')) {
+                // Clear saved preferences from localStorage
+                localStorage.removeItem('tradingAgentsCrypto_preferences');
+
+                // Reset form to default values
+                document.getElementById('llm_provider').value = 'openrouter';
+                document.getElementById('backend_url').value = 'https://openrouter.ai/api/v1';
+                document.getElementById('research_depth').value = '3';
+
+                // Reset model selections to Open Router defaults
+                document.getElementById('shallow_thinker').value = 'openai/gpt-4o-mini';
+                document.getElementById('deep_thinker').value = 'openai/gpt-4o';
+                document.getElementById('llm_provider').dispatchEvent(new Event('change'));
+
+                // Reset analyst selections to all selected
+                document.querySelectorAll('.checkbox-item').forEach(item => {
+                    item.classList.add('selected');
+                });
+
+                // Reset other fields
+                document.getElementById('ticker').value = 'BTC';
+                document.getElementById('analysis_date').value = new Date().toISOString().split('T')[0];
+
+                console.log('[CONFIG] User preferences cleared and form reset to defaults');
+
+                // Show confirmation
+                const notification = document.createElement('div');
+                notification.innerHTML = '✓ Settings reset to defaults';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #f59e0b;
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    font-size: 0.9rem;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    animation: fadeInOut 2s ease-in-out;
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            }
+        }
+
+        function loadUserPreferences() {
+            const savedPreferences = localStorage.getItem('tradingAgentsCrypto_preferences');
+            if (savedPreferences) {
+                try {
+                    const preferences = JSON.parse(savedPreferences);
+                    console.log('[CONFIG] Loading saved preferences:', preferences);
+
+                    // Apply saved preferences to form fields
+                    if (preferences.llm_provider) {
+                        document.getElementById('llm_provider').value = preferences.llm_provider;
+                        // Trigger change event to update model options and URL
+                        document.getElementById('llm_provider').dispatchEvent(new Event('change'));
+                    }
+
+                    // Small delay to ensure DOM is ready for model selection
+                    setTimeout(() => {
+                        if (preferences.backend_url) {
+                            document.getElementById('backend_url').value = preferences.backend_url;
+                        }
+
+                        // Load model selections after the provider change event has updated the options
+                        if (preferences.shallow_thinker) {
+                            const shallowSelect = document.getElementById('shallow_thinker');
+                            // Check if the option exists before selecting it
+                            if (shallowSelect.querySelector(`option[value="${preferences.shallow_thinker}"]`)) {
+                                shallowSelect.value = preferences.shallow_thinker;
+                            }
+                        }
+
+                        if (preferences.deep_thinker) {
+                            const deepSelect = document.getElementById('deep_thinker');
+                            // Check if the option exists before selecting it
+                            if (deepSelect.querySelector(`option[value="${preferences.deep_thinker}"]`)) {
+                                deepSelect.value = preferences.deep_thinker;
+                            }
+                        }
+
+                        if (preferences.research_depth) {
+                            document.getElementById('research_depth').value = preferences.research_depth;
+                        }
+
+                        if (preferences.selected_analysts && preferences.selected_analysts.length > 0) {
+                            // Clear all selections first
+                            document.querySelectorAll('.checkbox-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+                            // Apply saved selections
+                            preferences.selected_analysts.forEach(analyst => {
+                                const checkbox = document.querySelector(`.checkbox-item[data-analyst="${analyst}"]`);
+                                if (checkbox) {
+                                    checkbox.classList.add('selected');
+                                }
+                            });
+                        }
+
+                        if (preferences.ticker) {
+                            document.getElementById('ticker').value = preferences.ticker;
+                        }
+
+                        if (preferences.analysis_date) {
+                            document.getElementById('analysis_date').value = preferences.analysis_date;
+                        }
+                    }, 150); // Slightly longer delay to ensure model options are populated
+
+                } catch (error) {
+                    console.error('[CONFIG] Error loading preferences:', error);
+                    // Clear corrupted preferences
+                    localStorage.removeItem('tradingAgentsCrypto_preferences');
+                }
             }
         }
         
@@ -642,6 +834,7 @@
                 /^sk-proj-[a-zA-Z0-9_-]+$/,  // OpenAI project keys
                 /^sk-[a-zA-Z0-9_-]{20,}$/,   // OpenAI keys
                 /^sk-or-v1-[a-zA-Z0-9_-]{40,}$/,  // Open Router keys
+                /^sk-[a-zA-Z0-9]{32,}$/,  // Generic Open Router keys
                 /^AIza[a-zA-Z0-9_-]{35}$/,   // Google API keys
                 /^ya29\.[a-zA-Z0-9_-]+$/,    // Google OAuth tokens
             ];
@@ -663,10 +856,19 @@
             document.documentElement.setAttribute('data-theme', savedTheme);
         }
         
-        // Load saved API key on page load
+        // Load saved preferences on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSavedApiKey();
             loadSavedTheme();
+            loadUserPreferences();
+
+            // Ensure provider change event is triggered to load correct models
+            setTimeout(() => {
+                const provider = document.getElementById('llm_provider').value;
+                if (provider) {
+                    document.getElementById('llm_provider').dispatchEvent(new Event('change'));
+                }
+            }, 200); // Delay to ensure all preferences are loaded
         });
         
         // Save API key when user types
@@ -704,6 +906,9 @@
                 return;
             }
             
+            // Save user preferences before starting analysis
+            saveUserPreferences();
+
             // Collect form data
             const formData = {
                 ticker: document.getElementById('ticker').value.toUpperCase(),
@@ -723,6 +928,9 @@
             document.getElementById('loadingSpinner').style.display = 'block';
             
             // Start analysis
+            console.log('[DEBUG] Starting analysis with formData:', formData);
+            console.log('[DEBUG] Fetch URL: /api/start_analysis');
+
             fetch('/api/start_analysis', {
                 method: 'POST',
                 headers: {
@@ -730,13 +938,26 @@
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('[DEBUG] Fetch response status:', response.status);
+                console.log('[DEBUG] Fetch response headers:', response.headers);
+                if (!response.ok) {
+                    console.error('[DEBUG] Fetch failed with status:', response.status);
+                    console.error('[DEBUG] Fetch response text:', response.text());
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('[DEBUG] Fetch success, response data:', data);
                 // Redirect to analysis page with session ID
                 window.location.href = `/analysis?session=${data.session_id}`;
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('[DEBUG] Fetch error details:', error);
+                console.error('[DEBUG] Error name:', error.name);
+                console.error('[DEBUG] Error message:', error.message);
+                console.error('[DEBUG] Error stack:', error.stack);
                 alert('Failed to start analysis. Please try again.');
                 document.getElementById('analysisForm').style.display = 'block';
                 document.getElementById('loadingSpinner').style.display = 'none';
@@ -763,22 +984,132 @@
             const models = {
                 'openrouter': {
                     shallow: [
+                        // OpenAI Models
                         {value: 'openai/gpt-4o-mini', text: 'GPT-4o-mini - Fast and efficient for quick tasks'},
                         {value: 'openai/gpt-4o', text: 'GPT-4o - Standard model with solid capabilities'},
+                        {value: 'openai/gpt-3.5-turbo', text: 'GPT-3.5-turbo - Cost-effective general purpose'},
+                        {value: 'openai/gpt-4-turbo', text: 'GPT-4-turbo - Enhanced GPT-4 with larger context'},
+                        {value: 'openai/gpt-4', text: 'GPT-4 - Original GPT-4 model'},
+
+                        // Anthropic Models
                         {value: 'anthropic/claude-3-5-haiku', text: 'Claude 3.5 Haiku - Fast inference and standard capabilities'},
                         {value: 'anthropic/claude-3-5-sonnet', text: 'Claude 3.5 Sonnet - Highly capable standard model'},
+                        {value: 'anthropic/claude-3-haiku', text: 'Claude 3 Haiku - Fast and efficient'},
+                        {value: 'anthropic/claude-3-sonnet', text: 'Claude 3 Sonnet - Balanced performance'},
+                        {value: 'anthropic/claude-3-opus', text: 'Claude 3 Opus - Most powerful Claude model'},
+
+                        // Google Models
                         {value: 'google/gemini-2.0-flash-exp:free', text: 'Gemini 2.0 Flash (Free) - Cost-effective and fast'},
-                        {value: 'meta-llama/llama-3.1-8b-instruct:free', text: 'Llama 3.1 8B (Free) - Open-source model'}
+                        {value: 'google/gemini-2.0-flash-exp', text: 'Gemini 2.0 Flash - Next generation fast model'},
+                        {value: 'google/gemini-pro-1.5', text: 'Gemini Pro 1.5 - Advanced multimodal capabilities'},
+                        {value: 'google/gemini-pro', text: 'Gemini Pro - Google\'s standard model'},
+                        {value: 'google/gemini-flash-1.5', text: 'Gemini Flash 1.5 - Fast inference model'},
+
+                        // Meta Models
+                        {value: 'meta-llama/llama-3.1-8b-instruct:free', text: 'Llama 3.1 8B (Free) - Open-source model'},
+                        {value: 'meta-llama/llama-3.1-8b-instruct', text: 'Llama 3.1 8B - Efficient 8B parameter model'},
+                        {value: 'meta-llama/llama-3.1-70b-instruct', text: 'Llama 3.1 70B - High-performance open-source model'},
+                        {value: 'meta-llama/llama-3.1-405b-instruct', text: 'Llama 3.1 405B - Largest Llama model available'},
+                        {value: 'meta-llama/llama-3-8b-instruct:free', text: 'Llama 3 8B (Free) - Previous generation'},
+                        {value: 'meta-llama/llama-3-70b-instruct', text: 'Llama 3 70B - Previous generation high-performance'},
+
+                        // Mistral Models
+                        {value: 'mistralai/mistral-7b-instruct:free', text: 'Mistral 7B (Free) - Fast and capable'},
+                        {value: 'mistralai/mistral-7b-instruct', text: 'Mistral 7B - Efficient 7B parameter model'},
+                        {value: 'mistralai/mixtral-8x7b-instruct', text: 'Mixtral 8x7B - Mixture of experts model'},
+                        {value: 'mistralai/mistral-large', text: 'Mistral Large - High-performance model'},
+
+                        // Free Tier Models (No Cost)
+                        {value: 'meta-llama/llama-3.1-8b-instruct:free', text: '🆓 Llama 3.1 8B (FREE) - Open-source model'},
+                        {value: 'meta-llama/llama-3-8b-instruct:free', text: '🆓 Llama 3 8B (FREE) - Previous generation'},
+                        {value: 'mistralai/mistral-7b-instruct:free', text: '🆓 Mistral 7B (FREE) - Fast and capable'},
+                        {value: 'google/gemini-2.0-flash-exp:free', text: '🆓 Gemini 2.0 Flash (FREE) - Google\'s latest'},
+                        {value: 'microsoft/wizardlm-2-8x22b:free', text: '🆓 WizardLM 2 8x22B (FREE) - Microsoft fine-tuned'},
+                        {value: 'huggingface/zephyr-7b-beta:free', text: '🆓 Zephyr 7B Beta (FREE) - HuggingFace model'},
+                        {value: 'openchat/openchat-7b:free', text: '🆓 OpenChat 7B (FREE) - Uncensored chat model'},
+                        {value: 'anthropic/claude-2:free', text: '🆓 Claude 2 (FREE) - Anthropic\'s model'},
+                        {value: 'anthropic/claude-instant-1:free', text: '🆓 Claude Instant (FREE) - Fast Claude variant'},
+                        {value: 'cohere/command-r:free', text: '🆓 Command R (FREE) - Cohere\'s standard model'},
+                        {value: 'meta-llama/llama-2-13b-chat:free', text: '🆓 Llama 2 13B (FREE) - Popular open-source'},
+                        {value: 'meta-llama/llama-2-7b-chat:free', text: '🆓 Llama 2 7B (FREE) - Lightweight model'},
+                        {value: 'google/gemma-7b-it:free', text: '🆓 Gemma 7B (FREE) - Google\'s lightweight model'},
+                        {value: 'microsoft/phi-2:free', text: '🆓 Phi-2 (FREE) - Microsoft\'s efficient model'},
+                        {value: 'teknium/openhermes-2.5-mistral-7b:free', text: '🆓 OpenHermes 2.5 (FREE) - Fine-tuned Mistral'},
+                        {value: 'pygmalionai/mythalion-13b:free', text: '🆓 Mythalion 13B (FREE) - Role-playing model'},
+                        {value: 'undi95/toppy-m-7b:free', text: '🆓 Toppy-M 7B (FREE) - Creative writing model'},
+                        {value: 'gryphe/mythomax-l2-13b:free', text: '🆓 MythoMax L2 13B (FREE) - Storytelling model'},
+                        {value: 'nousresearch/nous-hermes-llama2-13b:free', text: '🆓 Nous Hermes Llama2 13B (FREE) - Research model'},
+                        {value: 'aetherwiing/mn-starcannon-12b:free', text: '🆓 MN-Starcannon 12B (FREE) - Multi-task model'},
+                        {value: 'nvidia/nemotron-nano-9b-v2:free', text: '🆓 NVIDIA Nemotron Nano 9B v2 (FREE) - NVIDIA fine-tuned model'},
+                        {value: 'deepseek/deepseek-chat-v3.1:free', text: '🆓 DeepSeek Chat v3.1 (FREE) - Advanced reasoning model'},
+
+                        // Other Models
+                        {value: 'microsoft/wizardlm-2-8x22b', text: 'WizardLM 2 8x22B - Microsoft fine-tuned model'},
+                        {value: 'cohere/command-r-plus', text: 'Command R+ - Cohere\'s advanced model'},
+                        {value: 'cohere/command-r', text: 'Command R - Cohere\'s standard model'},
+                        {value: 'perplexity/llama-3.1-sonar-large-128k-online', text: 'Llama 3.1 Sonar Large - With online search'},
+                        {value: 'perplexity/llama-3.1-sonar-small-128k-online', text: 'Llama 3.1 Sonar Small - Compact with online search'},
+                        {value: 'fireworks/firellava-13b', text: 'FireLLaVA 13B - Multimodal model'},
+                        {value: 'anthropic/claude-2', text: 'Claude 2 - Previous generation Claude'},
+                        {value: 'anthropic/claude-instant-1', text: 'Claude Instant - Fast Claude variant'}
                     ],
                     deep: [
+                        // OpenAI Models
                         {value: 'openai/gpt-4o', text: 'GPT-4o - Standard model with solid capabilities'},
                         {value: 'openai/gpt-4o-mini', text: 'GPT-4o-mini - Fast and efficient for quick tasks'},
-                        {value: 'anthropic/claude-3-5-sonnet', text: 'Claude 3.5 Sonnet - Highly capable standard model'},
-                        {value: 'anthropic/claude-3-5-haiku', text: 'Claude 3.5 Haiku - Fast inference and standard capabilities'},
+                        {value: 'openai/gpt-4-turbo', text: 'GPT-4-turbo - Enhanced GPT-4 with larger context'},
+                        {value: 'openai/gpt-4', text: 'GPT-4 - Original GPT-4 model'},
                         {value: 'openai/o1-preview', text: 'o1-preview - Advanced reasoning model'},
                         {value: 'openai/o1-mini', text: 'o1-mini - Compact advanced reasoning model'},
+                        {value: 'openai/gpt-3.5-turbo-16k', text: 'GPT-3.5-turbo 16K - Extended context'},
+
+                        // Anthropic Models
+                        {value: 'anthropic/claude-3-5-sonnet', text: 'Claude 3.5 Sonnet - Highly capable standard model'},
+                        {value: 'anthropic/claude-3-5-haiku', text: 'Claude 3.5 Haiku - Fast inference and standard capabilities'},
+                        {value: 'anthropic/claude-3-opus', text: 'Claude 3 Opus - Most powerful Claude model'},
+                        {value: 'anthropic/claude-3-sonnet', text: 'Claude 3 Sonnet - Balanced performance'},
+                        {value: 'anthropic/claude-3-haiku', text: 'Claude 3 Haiku - Fast and efficient'},
+                        {value: 'anthropic/claude-2', text: 'Claude 2 - Previous generation Claude'},
+
+                        // Google Models
                         {value: 'google/gemini-pro-1.5', text: 'Gemini Pro 1.5 - Advanced multimodal capabilities'},
-                        {value: 'meta-llama/llama-3.1-70b-instruct', text: 'Llama 3.1 70B - High-performance open-source model'}
+                        {value: 'google/gemini-2.0-flash-exp', text: 'Gemini 2.0 Flash - Next generation fast model'},
+                        {value: 'google/gemini-pro', text: 'Gemini Pro - Google\'s standard model'},
+                        {value: 'google/gemini-flash-1.5', text: 'Gemini Flash 1.5 - Fast inference model'},
+
+                        // Meta Models
+                        {value: 'meta-llama/llama-3.1-405b-instruct', text: 'Llama 3.1 405B - Largest Llama model available'},
+                        {value: 'meta-llama/llama-3.1-70b-instruct', text: 'Llama 3.1 70B - High-performance open-source model'},
+                        {value: 'meta-llama/llama-3.1-8b-instruct', text: 'Llama 3.1 8B - Efficient 8B parameter model'},
+                        {value: 'meta-llama/llama-3-70b-instruct', text: 'Llama 3 70B - Previous generation high-performance'},
+                        {value: 'meta-llama/llama-3-8b-instruct', text: 'Llama 3 8B - Previous generation efficient'},
+
+                        // Mistral Models
+                        {value: 'mistralai/mistral-large', text: 'Mistral Large - High-performance model'},
+                        {value: 'mistralai/mixtral-8x7b-instruct', text: 'Mixtral 8x7B - Mixture of experts model'},
+                        {value: 'mistralai/mistral-7b-instruct', text: 'Mistral 7B - Efficient 7B parameter model'},
+
+                        // Free Advanced Models (No Cost)
+                        {value: 'microsoft/wizardlm-2-8x22b:free', text: '🆓 WizardLM 2 8x22B (FREE) - Microsoft fine-tuned for complex tasks'},
+                        {value: 'meta-llama/llama-2-13b-chat:free', text: '🆓 Llama 2 13B (FREE) - Good for analysis tasks'},
+                        {value: 'nousresearch/nous-hermes-llama2-13b:free', text: '🆓 Nous Hermes Llama2 13B (FREE) - Research-oriented'},
+                        {value: 'gryphe/mythomax-l2-13b:free', text: '🆓 MythoMax L2 13B (FREE) - Creative analysis model'},
+                        {value: 'teknium/openhermes-2.5-mistral-7b:free', text: '🆓 OpenHermes 2.5 (FREE) - Fine-tuned for reasoning'},
+                        {value: 'huggingface/zephyr-7b-beta:free', text: '🆓 Zephyr 7B Beta (FREE) - Helpful assistant model'},
+                        {value: 'pygmalionai/mythalion-13b:free', text: '🆓 Mythalion 13B (FREE) - Advanced reasoning'},
+                        {value: 'undi95/toppy-m-7b:free', text: '🆓 Toppy-M 7B (FREE) - Creative problem solving'},
+                        {value: 'aetherwiing/mn-starcannon-12b:free', text: '🆓 MN-Starcannon 12B (FREE) - Multi-domain expert'},
+
+                        // Other Advanced Models
+                        {value: 'microsoft/wizardlm-2-8x22b', text: 'WizardLM 2 8x22B - Microsoft fine-tuned model'},
+                        {value: 'cohere/command-r-plus', text: 'Command R+ - Cohere\'s advanced model'},
+                        {value: 'perplexity/llama-3.1-sonar-large-128k-online', text: 'Llama 3.1 Sonar Large - With online search'},
+                        {value: 'perplexity/llama-3.1-sonar-huge-128k-online', text: 'Llama 3.1 Sonar Huge - Largest with online search'},
+                        {value: 'anthropic/claude-3-7-sonnet-8192', text: 'Claude 3.7 Sonnet - Latest Claude with extended context'},
+                        {value: 'openai/gpt-4o-2024-08-06', text: 'GPT-4o (Latest) - Most recent GPT-4o version'},
+                        {value: 'fireworks/firellava-13b', text: 'FireLLaVA 13B - Multimodal model'},
+                        {value: 'nvidia/llama-3.1-nemotron-70b-instruct', text: 'Nemotron 70B - NVIDIA fine-tuned model'},
+                        {value: 'openrouter/sonoma-sky-alpha', text: 'OpenRouter Sonoma Sky Alpha - Advanced reasoning model'}
                     ]
                 },
                 'openai': {

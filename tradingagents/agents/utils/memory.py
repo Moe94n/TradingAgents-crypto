@@ -33,11 +33,30 @@ class FinancialSituationMemory:
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
-        
+
         response = self.client.embeddings.create(
             model=self.embedding, input=text
         )
-        return response.data[0].embedding
+
+        # Handle different response formats from different providers
+        if hasattr(response, 'data') and isinstance(response.data, list) and len(response.data) > 0:
+            return response.data[0].embedding
+        elif hasattr(response, 'data') and isinstance(response.data, str):
+            # If data is a string, try to parse it as JSON or handle as raw response
+            try:
+                import json
+                parsed = json.loads(response.data)
+                if isinstance(parsed, list) and len(parsed) > 0:
+                    return parsed[0].get('embedding', parsed[0])
+                return parsed
+            except:
+                return response.data
+        else:
+            # Fallback: try to extract embedding from response
+            try:
+                return response.embedding if hasattr(response, 'embedding') else str(response)
+            except:
+                return f"Error: Unable to extract embedding for text: {text[:50]}..."
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""

@@ -183,6 +183,8 @@ def run_analysis_background(session_id: str, config: Dict):
             print(f"[DEBUG] Starting analysis for session {session_id}")
             print(f"[DEBUG] Config: {safe_log_config(config)}")
             print(f"[DEBUG] Selected analysts: {config['analysts']}")
+            print(f"[DEBUG] Shallow thinker: {config.get('shallow_thinker', 'NOT SET')}")
+            print(f"[DEBUG] Deep thinker: {config.get('deep_thinker', 'NOT SET')}")
         
         buffer = analysis_sessions[session_id]['buffer']
         buffer.add_message("System", f"Initializing analysis for {config['ticker']}...")
@@ -192,15 +194,28 @@ def run_analysis_background(session_id: str, config: Dict):
             'llm_provider': config['llm_provider'],
             'backend_url': config['backend_url'],
             'api_key': config.get('api_key', ''),
-            'shallow_thinker': config['shallow_thinker'],
-            'deep_thinker': config['deep_thinker'],
+            'quick_think_llm': config['shallow_thinker'],  # Map shallow_thinker to quick_think_llm
+            'deep_think_llm': config['deep_thinker'],      # Map deep_thinker to deep_think_llm
             'research_depth': config['research_depth'],
             'session_id': session_id  # Add session ID for unique memory collections
         })
         
         if not is_production():
-            print(f"[DEBUG] LLM provider: {updated_config['llm_provider']}")
+            print(f"[DEBUG] Updated config quick_think_llm: {updated_config.get('quick_think_llm', 'NOT SET')}")
+            print(f"[DEBUG] Updated config deep_think_llm: {updated_config.get('deep_think_llm', 'NOT SET')}")
         
+        if not is_production():
+            print(f"[DEBUG] LLM provider: {updated_config['llm_provider']}")
+            print(f"[DEBUG] API key present: {'YES' if updated_config.get('api_key') else 'NO'}")
+
+        # Validate API key is provided
+        if not updated_config.get('api_key'):
+            error_msg = "API key is required but not provided. Please provide a valid API key for the selected LLM provider."
+            buffer.add_message("Error", error_msg)
+            buffer.update_progress(0, "Analysis failed - API key missing")
+            analysis_sessions[session_id]['status'] = 'failed'
+            return
+
         # Initialize the graph with correct parameters
         graph = TradingAgentsGraph(
             selected_analysts=config['analysts'],
@@ -214,104 +229,126 @@ def run_analysis_background(session_id: str, config: Dict):
             print(f"[DEBUG] Creating initial state for {config['ticker']} on {config['analysis_date']}")
         # Create initial state
         init_state = graph.propagator.create_initial_state(
-            config['ticker'], 
+            config['ticker'],
             config['analysis_date']
         )
+        if not is_production():
+            print(f"[DEBUG] Initial state keys: {list(init_state.keys())}")
+            print(f"[DEBUG] Initial state messages: {init_state.get('messages', 'MISSING')}")
+            print(f"[DEBUG] Initial state company_of_interest: {init_state.get('company_of_interest', 'MISSING')}")
+            print(f"[DEBUG] Initial state trade_date: {init_state.get('trade_date', 'MISSING')}")
         buffer.add_message("System", "Initial state created successfully")
-        
+
         buffer.add_message("System", f"Starting analysis for {config['ticker']} on {config['analysis_date']}")
         buffer.update_progress(10, "Initializing analysis...")
-        
+
         # Send analysis info to frontend
         socketio.emit('analysis_info_update', {
             'ticker': config['ticker'],
             'analysis_date': config['analysis_date']
         }, room=session_id)
-        
+
         # Get graph args
         args = graph.propagator.get_graph_args()
-        
+        if not is_production():
+            print(f"[DEBUG] Graph args: {args}")
+
         # Stream the analysis
         step_count = 0
         total_steps = len(config['analysts']) * 2 + 5  # Rough estimate
-        
-        for chunk in graph.graph.stream(init_state, **args):
-            step_count += 1
-            progress = min(90, (step_count / total_steps) * 80 + 10)
-            
-            if len(chunk.get("messages", [])) > 0:
-                last_message = chunk["messages"][-1]
-                
-                if hasattr(last_message, "content"):
-                    content = str(last_message.content)
-                    if len(content) > 500:  # Truncate very long messages
-                        content = content[:500] + "..."
-                    buffer.add_message("Analysis", content)
-                
-                # Update agent statuses based on chunk content
-                if "market_report" in chunk and chunk["market_report"]:
-                    buffer.update_report_section("market_report", chunk["market_report"])
-                    buffer.update_agent_status("Market Analyst", "completed")
-                    buffer.update_progress(progress, "Market analysis completed")
-                
-                if "sentiment_report" in chunk and chunk["sentiment_report"]:
-                    buffer.update_report_section("sentiment_report", chunk["sentiment_report"])
-                    buffer.update_agent_status("Social Analyst", "completed")
-                    buffer.update_progress(progress, "Social sentiment analysis completed")
-                
-                if "news_report" in chunk and chunk["news_report"]:
-                    buffer.update_report_section("news_report", chunk["news_report"])
-                    buffer.update_agent_status("News Analyst", "completed")
-                    buffer.update_progress(progress, "News analysis completed")
-                
-                if "fundamentals_report" in chunk and chunk["fundamentals_report"]:
-                    buffer.update_report_section("fundamentals_report", chunk["fundamentals_report"])
-                    buffer.update_agent_status("Fundamentals Analyst", "completed")
-                    buffer.update_progress(progress, "Fundamentals analysis completed")
-                
-                # Handle research team updates
-                if "investment_debate_state" in chunk and chunk["investment_debate_state"]:
-                    debate_state = chunk["investment_debate_state"]
-                    
-                    # Update Bull Researcher status and report
-                    if "bull_history" in debate_state and debate_state["bull_history"]:
-                        buffer.update_agent_status("Bull Researcher", "in_progress")
-                        # Extract latest bull response
-                        bull_responses = debate_state["bull_history"].split("\n")
-                        latest_bull = bull_responses[-1] if bull_responses else ""
-                        if latest_bull and len(latest_bull.strip()) > 0:
-                            buffer.add_message("Bull Researcher", f"Bull Analysis: {latest_bull}")
-                    
-                    # Update Bear Researcher status and report  
-                    if "bear_history" in debate_state and debate_state["bear_history"]:
-                        buffer.update_agent_status("Bear Researcher", "in_progress")
-                        # Extract latest bear response
-                        bear_responses = debate_state["bear_history"].split("\n")
-                        latest_bear = bear_responses[-1] if bear_responses else ""
-                        if latest_bear and len(latest_bear.strip()) > 0:
-                            buffer.add_message("Bear Researcher", f"Bear Analysis: {latest_bear}")
-                    
-                    # Update Research Manager status and final decision
-                    if "judge_decision" in debate_state and debate_state["judge_decision"]:
-                        buffer.update_report_section("investment_plan", debate_state["judge_decision"])
-                        buffer.update_agent_status("Bull Researcher", "completed")
-                        buffer.update_agent_status("Bear Researcher", "completed") 
-                        buffer.update_agent_status("Research Manager", "completed")
-                        buffer.add_message("Research Manager", f"Final Decision: {debate_state['judge_decision']}")
-                        buffer.update_progress(progress, "Research team decision completed")
-                
-                # Handle trading team updates
-                if "trader_investment_plan" in chunk and chunk["trader_investment_plan"]:
-                    buffer.update_report_section("trader_investment_plan", chunk["trader_investment_plan"])
-                    buffer.update_agent_status("Trader", "completed")
-                    buffer.update_progress(progress, "Trading plan completed")
-                
-                # Handle final decision
-                if "final_trade_decision" in chunk and chunk["final_trade_decision"]:
-                    buffer.update_report_section("final_trade_decision", chunk["final_trade_decision"])
-                    buffer.update_agent_status("Portfolio Manager", "completed")
-                    buffer.update_progress(100, "Analysis completed!")
-        
+
+        if not is_production():
+            print(f"[DEBUG] Starting graph.stream with init_state keys: {list(init_state.keys())}")
+            print(f"[DEBUG] Stream args: {args}")
+
+        try:
+            for chunk in graph.graph.stream(init_state, **args):
+                step_count += 1
+                progress = min(90, (step_count / total_steps) * 80 + 10)
+
+                if not is_production():
+                    print(f"[DEBUG] Processing chunk {step_count}, keys: {list(chunk.keys())}")
+
+                if len(chunk.get("messages", [])) > 0:
+                    last_message = chunk["messages"][-1]
+
+                    if hasattr(last_message, "content"):
+                        content = str(last_message.content)
+                        if len(content) > 500:  # Truncate very long messages
+                            content = content[:500] + "..."
+                        buffer.add_message("Analysis", content)
+
+                    # Update agent statuses based on chunk content
+                    if "market_report" in chunk and chunk["market_report"]:
+                        buffer.update_report_section("market_report", chunk["market_report"])
+                        buffer.update_agent_status("Market Analyst", "completed")
+                        buffer.update_progress(progress, "Market analysis completed")
+
+                    if "sentiment_report" in chunk and chunk["sentiment_report"]:
+                        buffer.update_report_section("sentiment_report", chunk["sentiment_report"])
+                        buffer.update_agent_status("Social Analyst", "completed")
+                        buffer.update_progress(progress, "Social sentiment analysis completed")
+
+                    if "news_report" in chunk and chunk["news_report"]:
+                        buffer.update_report_section("news_report", chunk["news_report"])
+                        buffer.update_agent_status("News Analyst", "completed")
+                        buffer.update_progress(progress, "News analysis completed")
+
+                    if "fundamentals_report" in chunk and chunk["fundamentals_report"]:
+                        buffer.update_report_section("fundamentals_report", chunk["fundamentals_report"])
+                        buffer.update_agent_status("Fundamentals Analyst", "completed")
+                        buffer.update_progress(progress, "Fundamentals analysis completed")
+
+                    # Handle research team updates
+                    if "investment_debate_state" in chunk and chunk["investment_debate_state"]:
+                        debate_state = chunk["investment_debate_state"]
+
+                        # Update Bull Researcher status and report
+                        if "bull_history" in debate_state and debate_state["bull_history"]:
+                            buffer.update_agent_status("Bull Researcher", "in_progress")
+                            # Extract latest bull response
+                            bull_responses = debate_state["bull_history"].split("\n")
+                            latest_bull = bull_responses[-1] if bull_responses else ""
+                            if latest_bull and len(latest_bull.strip()) > 0:
+                                buffer.add_message("Bull Researcher", f"Bull Analysis: {latest_bull}")
+
+                        # Update Bear Researcher status and report
+                        if "bear_history" in debate_state and debate_state["bear_history"]:
+                            buffer.update_agent_status("Bear Researcher", "in_progress")
+                            # Extract latest bear response
+                            bear_responses = debate_state["bear_history"].split("\n")
+                            latest_bear = bear_responses[-1] if bear_responses else ""
+                            if latest_bear and len(latest_bear.strip()) > 0:
+                                buffer.add_message("Bear Researcher", f"Bear Analysis: {latest_bear}")
+
+                        # Update Research Manager status and final decision
+                        if "judge_decision" in debate_state and debate_state["judge_decision"]:
+                            buffer.update_report_section("investment_plan", debate_state["judge_decision"])
+                            buffer.update_agent_status("Bull Researcher", "completed")
+                            buffer.update_agent_status("Bear Researcher", "completed")
+                            buffer.update_agent_status("Research Manager", "completed")
+                            buffer.add_message("Research Manager", f"Final Decision: {debate_state['judge_decision']}")
+                            buffer.update_progress(progress, "Research team decision completed")
+
+                    # Handle trading team updates
+                    if "trader_investment_plan" in chunk and chunk["trader_investment_plan"]:
+                        buffer.update_report_section("trader_investment_plan", chunk["trader_investment_plan"])
+                        buffer.update_agent_status("Trader", "completed")
+                        buffer.update_progress(progress, "Trading plan completed")
+
+                    # Handle final decision
+                    if "final_trade_decision" in chunk and chunk["final_trade_decision"]:
+                        buffer.update_report_section("final_trade_decision", chunk["final_trade_decision"])
+                        buffer.update_agent_status("Portfolio Manager", "completed")
+                        buffer.update_progress(100, "Analysis completed!")
+
+        except Exception as stream_error:
+            if not is_production():
+                print(f"[DEBUG] Stream failed at step {step_count}, error: {stream_error}")
+                import traceback
+                print(f"[DEBUG] Stream traceback:\n{traceback.format_exc()}")
+            raise  # Re-raise to be caught by outer except
+
         buffer.update_progress(100, "Analysis completed successfully!")
         analysis_sessions[session_id]['status'] = 'completed'
         
@@ -323,6 +360,18 @@ def run_analysis_background(session_id: str, config: Dict):
         error_message = f"Analysis failed: {type(e).__name__}: {str(e)}"
         print(f"[ERROR] {error_message}")
         print(f"[ERROR] Traceback:\n{safe_error_traceback(error_traceback)}")
+        
+        # Add specific handling for OpenRouter-related errors
+        if "openrouter" in config.get('llm_provider', '').lower():
+            if "401" in str(e) or "unauthorized" in str(e).lower():
+                error_message += " - Please check your OpenRouter API key."
+            elif "429" in str(e) or "rate limit" in str(e).lower() or "rate-limited" in str(e).lower():
+                if "free" in config.get('shallow_thinker', '').lower() or "free" in config.get('deep_thinker', '').lower():
+                    error_message += " - Free model rate limited. Please use a paid model (e.g., gpt-4o-mini for shallow, gpt-4o for deep thinking) instead of free tiers."
+                else:
+                    error_message += " - OpenRouter rate limit exceeded. Try again later or use a different model."
+            elif "model" in str(e).lower() and "not found" in str(e).lower():
+                error_message += " - Selected model not available on OpenRouter. Try a different model."
         
         buffer.add_message("Error", error_message)
         buffer.add_message("Error", f"Detailed error: {safe_error_traceback(error_traceback)}")
@@ -359,7 +408,7 @@ if __name__ == '__main__':
     Path('templates').mkdir(exist_ok=True)
     Path('static').mkdir(exist_ok=True)
     
-    # Use port from environment variable for Cloud Run compatibility
+    # Use port from environment variable for Docker/Cloud Run compatibility
     port = int(os.environ.get('PORT', 8080))
     
     socketio.run(app, debug=False, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True) 

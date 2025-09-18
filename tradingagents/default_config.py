@@ -13,6 +13,7 @@ DEFAULT_CONFIG = {
     "deep_think_llm": "openai/gpt-4o",
     "quick_think_llm": "openai/gpt-4o-mini",
     "backend_url": "https://openrouter.ai/api/v1",
+    # Note: Free models may be rate-limited. Use paid models for reliable operation
     # Debate and discussion settings
     "max_debate_rounds": 1,
     "max_risk_discuss_rounds": 1,
